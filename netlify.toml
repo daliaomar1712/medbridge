@@ -1,0 +1,6 @@
+[build]
+  base = "frontend"
+  # API_URL is set in Netlify's environment variables after the Render service
+  # is created. It is injected into the published _redirects file at build time.
+  command = "test -n \"$API_URL\" && sed -i \"s|API_URL_PLACEHOLDER|${API_URL%/}|g\" public/_redirects && npm run build"
+  publish = "dist/frontend/browser"

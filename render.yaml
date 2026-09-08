@@ -1,0 +1,31 @@
+# Deploy this Blueprint from the repository root in Render.
+# It creates the API and its PostgreSQL database together.
+services:
+  - type: web
+    name: medbridge-api
+    runtime: node
+    region: frankfurt
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        value: https://medbridgeacademy0.netlify.app
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: medbridge-db
+          property: connectionString
+
+databases:
+  - name: medbridge-db
+    databaseName: medbridge
+    user: medbridge
+    region: frankfurt
+    plan: free
