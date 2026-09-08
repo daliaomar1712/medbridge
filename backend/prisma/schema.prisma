@@ -1,0 +1,162 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum CourseStatus {
+  ACTIVE
+  INACTIVE
+  DRAFT
+}
+
+enum EnrollmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String
+  firstName   String
+  lastName    String
+  phone       String?
+  role        Role     @default(USER)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  enrollments  Enrollment[]
+  wishlists    Wishlist[]
+  couponUsages CouponUsage[]
+
+  @@map("users")
+}
+
+model Course {
+  id             String       @id @default(uuid())
+  title_ar       String
+  title_en       String
+  description_ar String       @db.Text
+  description_en String       @db.Text
+  price          Decimal      @db.Decimal(10, 2)
+  duration       String
+  image          String?
+  status         CourseStatus @default(ACTIVE)
+  category       String?
+  maxStudents    Int?
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  enrollments Enrollment[]
+  wishlists   Wishlist[]
+
+  @@map("courses")
+}
+
+model Enrollment {
+  id         String           @id @default(uuid())
+  userId     String
+  courseId   String
+  status     EnrollmentStatus @default(PENDING)
+  pricePaid  Decimal          @db.Decimal(10, 2)
+  couponUsed String?
+  enrolledAt DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  userId    String
+  courseId  String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("wishlists")
+}
+
+model Coupon {
+  id         String       @id @default(uuid())
+  code       String       @unique
+  discount   Decimal      @db.Decimal(5, 2)
+  type       DiscountType
+  maxUses    Int?
+  usedCount  Int          @default(0)
+  expiresAt  DateTime?
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  usages CouponUsage[]
+
+  @@map("coupons")
+}
+
+model CouponUsage {
+  id       String   @id @default(uuid())
+  couponId String
+  userId   String
+  usedAt   DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("coupon_usages")
+}
+
+/// Single source of truth for the public academy identity and contact details.
+/// It is edited from the administrator dashboard and read by the public site.
+model AcademyProfile {
+  id               Int      @id @default(1)
+  name             String   @default("Med Bridge Academy")
+  nameAr           String?  @db.Text
+  tagline          String   @default("Practical medical training for students and healthcare professionals.") @db.Text
+  taglineAr        String?  @db.Text
+  description      String   @default("Learn. Practice. Grow.") @db.Text
+  descriptionAr    String?  @db.Text
+  whatsappUrl      String?
+  whatsappChannel  String?
+  facebookUrl      String?
+  instagramUrl     String?
+  tiktokUrl        String?
+  email            String?
+  phone            String?
+  location         String   @default("Mansoura, Egypt")
+  suturingVideosUrl String?
+  updatedAt        DateTime @updatedAt
+
+  @@map("academy_profile")
+}
